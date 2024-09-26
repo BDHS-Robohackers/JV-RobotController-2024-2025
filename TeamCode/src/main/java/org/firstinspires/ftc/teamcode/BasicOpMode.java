@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 @TeleOp(name = "Driver Op Mode", group = "Driver Op Mode")
@@ -14,6 +15,7 @@ public class BasicOpMode extends LinearOpMode {
     private DcMotor leftBackDrive = null;
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
+    private DcMotor armMotor = null;
 
     @Override
     public void runOpMode() {
@@ -26,6 +28,8 @@ public class BasicOpMode extends LinearOpMode {
         leftBackDrive = hardwareMap.get(DcMotor.class, "left_back_drive");
         rightFrontDrive = hardwareMap.get(DcMotor.class, "right_front_drive");
         rightBackDrive = hardwareMap.get(DcMotor.class, "right_back_drive");
+        armMotor = hardwareMap.get(DcMotor.class, "arm");
+
 
         // ########################################################################################
         // !!! IMPORTANT Drive Information. Test your motor directions. !!!!!
@@ -47,6 +51,7 @@ public class BasicOpMode extends LinearOpMode {
         leftBackDrive.setDirection(DcMotor.Direction.FORWARD);
         rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
+        armMotor.setDirection(DcMotorSimple.Direction.FORWARD);
 
         // Wait for the game to start (driver presses START)
         telemetry.addData("Status", "Initialized");
@@ -61,9 +66,11 @@ public class BasicOpMode extends LinearOpMode {
 
             // POV Mode uses left joystick to go forward & strafe, and right joystick to
             // rotate.
-            double axial = -gamepad1.left_stick_y; // Note: pushing stick forward gives negative value
-            double lateral = gamepad1.left_stick_x;
+            double axial = -gamepad1.left_stick_x; // Note: pushing stick forward gives negative value
+            double lateral = gamepad1.left_stick_y;
             double yaw = gamepad1.right_stick_x;
+
+            boolean aPressedDown = gamepad1.a;
 
             // Combine the joystick requests for each axis-motion to determine each wheel's
             // power.
