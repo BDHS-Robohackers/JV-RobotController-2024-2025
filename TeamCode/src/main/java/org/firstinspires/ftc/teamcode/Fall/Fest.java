@@ -1,70 +1,38 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.Fall;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.robot.Robot;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-@TeleOp(name = "Driver Op Mode", group = "Driver Op Mode")
-public class BasicOpMode extends LinearOpMode {
+@TeleOp(name = "FallFest Driver Op Mode", group = "Driver Op Mode")
+public class Fest extends LinearOpMode {
 
-    // Declare OpMode members for each of the 4 motors.
     private ElapsedTime runtime = new ElapsedTime();
     private DcMotor leftFrontDrive = null;
     private DcMotor leftBackDrive = null;
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
     private DcMotor armMotor = null;
+    private Servo pincher = null;
 
     @Override
     public void runOpMode() {
-
-        // Initialize the hardware variables. Note that the strings used here must
-        // correspond
-        // to the names assigned during the robot configuration step on the DS or RC
-        // devices.
-        leftFrontDrive = hardwareMap.get(DcMotor.class, "left_front_drive");
-        leftBackDrive = hardwareMap.get(DcMotor.class, "left_back_drive");
-        rightFrontDrive = hardwareMap.get(DcMotor.class, "right_front_drive");
-        rightBackDrive = hardwareMap.get(DcMotor.class, "right_back_drive");
+        leftFrontDrive = hardwareMap.get(DcMotor .class, "fl_drv");
+        leftBackDrive = hardwareMap.get(DcMotor.class, "bl_drv");
+        rightFrontDrive = hardwareMap.get(DcMotor.class, "fr_drv");
+        rightBackDrive = hardwareMap.get(DcMotor.class, "br_drv");
         armMotor = hardwareMap.get(DcMotor.class, "arm_cool");
+        pincher = hardwareMap.get(Servo.class, "pincher");
+        // decrease left value if pincher is pinching too much
+        // increase right value if pincher is expanding too far
+        pincher.scaleRange(-0.3, 1.4);
 
-
-        // ########################################################################################
-        // !!! IMPORTANT Drive Information. Test your motor directions. !!!!!
-        // ########################################################################################
-        // Most robots need the motors on one side to be reversed to drive forward.
-        // The motor reversals shown here are for a "direct drive" robot (the wheels
-        // turn the same direction as the motor shaft)
-        // If your robot has additional gear reductions or uses a right-angled drive,
-        // it's important to ensure
-        // that your motors are turning in the correct direction. So, start out with the
-        // reversals here, BUT
-        // when you first test your robot, push the left joystick forward and observe
-        // the direction the wheels turn.
-        // Reverse the direction (flip FORWARD <-> REVERSE ) of any wheel that runs
-        // backward
-        // Keep testing until ALL the wheels move the robot forward when you push the
-        // left joystick forward.
-        leftFrontDrive.setDirection(DcMotor.Direction.FORWARD);
-        leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightFrontDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
-        armMotor.setDirection(DcMotorSimple.Direction.FORWARD);
-
-        // Wait for the robot to start (driver presses START)
-        telemetry.addData("Status", "Initialized");
-        telemetry.update();
-
+        // Waiting for the play button to be pressed
         waitForStart();
-        runtime.reset();
-        armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        armMotor.setPower(99);
-
-        // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
+            // Running
             double max;
 
             // POV Mode uses left joystick to go forward & strafe, and right joystick to
@@ -72,25 +40,6 @@ public class BasicOpMode extends LinearOpMode {
             double axial = -gamepad1.left_stick_x; // Note: pushing stick forward gives negative value
             double lateral = gamepad1.left_stick_y;
             double yaw = gamepad1.right_stick_x;
-
-            boolean aPressedDown = gamepad1.a;
-
-            armMotor.setPower(0);
-            if (gamepad1.y) {
-                armMotor.setPower(1);
-            }
-
-            if (gamepad1.a) {
-                armMotor.setPower(-1);
-            }
-
-            if (gamepad1.dpad_up) {
-
-//controls for
-            }
-
-
-
 
             // Combine the joystick requests for each axis-motion to determine each wheel's
             // power.
@@ -141,6 +90,25 @@ public class BasicOpMode extends LinearOpMode {
             telemetry.addData("Front left/Right", "%4.2f, %4.2f", leftFrontPower, rightFrontPower);
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f", leftBackPower, rightBackPower);
             telemetry.update();
+
+            armMotor.setPower(0);
+            if (gamepad1.y) {
+                armMotor.setPower(.5);
+            }
+            if (gamepad1.a) {
+                armMotor.setPower(-.5);
+            }
+
+            if (gamepad1.x) {
+                pincher.setPosition(1);
+            } else {
+                pincher.setPosition(0);
+            }
         }
+
+        // Code Finished
+        armMotor.setPower(0);
+        pincher.setPosition(0);
     }
+
 }
