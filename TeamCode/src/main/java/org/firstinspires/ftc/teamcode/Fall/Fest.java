@@ -27,7 +27,7 @@ public class Fest extends LinearOpMode {
         pincher = hardwareMap.get(Servo.class, "pincher");
         // decrease left value if pincher is pinching too much
         // increase right value if pincher is expanding too far
-        pincher.scaleRange(0, 1.4);
+        pincher.scaleRange(-.3, 1.4);
 
         // Waiting for the play button to be pressed
         waitForStart();

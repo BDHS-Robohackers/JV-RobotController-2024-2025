@@ -69,19 +69,24 @@ public class BasicOpMode extends LinearOpMode {
 
             // POV Mode uses left joystick to go forward & strafe, and right joystick to
             // rotate.
-            double axial = -gamepad1.left_stick_x; // Note: pushing stick forward gives negative value
-            double lateral = gamepad1.left_stick_y;
+            double axial = -gamepad1.left_stick_y; // Note: pushing stick forward gives negative value
+            double lateral = gamepad1.left_stick_x;
             double yaw = gamepad1.right_stick_x;
 
             boolean aPressedDown = gamepad1.a;
 
-            armMotor.setPower(0);
             if (gamepad1.y) {
+                armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                 armMotor.setPower(1);
             }
-
-            if (gamepad1.a) {
+            else if (gamepad1.a) {
+                armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                 armMotor.setPower(-1);
+            }
+            else {
+                armMotor.setPower(0);
+                armMotor.setTargetPosition(armMotor.getCurrentPosition());
+                armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             }
 
             if (gamepad1.dpad_up) {
