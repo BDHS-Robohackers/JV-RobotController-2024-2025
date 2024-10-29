@@ -4,6 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.robot.Robot;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -17,6 +18,8 @@ public class BasicOpMode extends LinearOpMode {
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
     private DcMotor armMotor = null;
+    private Servo wristMotor = null;
+    private Servo handMotor = null;
 
     @Override
     public void runOpMode() {
@@ -30,6 +33,8 @@ public class BasicOpMode extends LinearOpMode {
         rightFrontDrive = hardwareMap.get(DcMotor.class, "right_front_drive");
         rightBackDrive = hardwareMap.get(DcMotor.class, "right_back_drive");
         armMotor = hardwareMap.get(DcMotor.class, "arm_cool");
+        wristMotor = hardwareMap.get(Servo.class, "wristy");
+        handMotor = hardwareMap.get(Servo.class, "army");
 
 
         // ########################################################################################
@@ -75,6 +80,8 @@ public class BasicOpMode extends LinearOpMode {
 
             boolean aPressedDown = gamepad1.a;
 
+            telemetry.addData("Arm Motor Pos: ", armMotor.getCurrentPosition());
+
             if (gamepad1.y) {
                 armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                 armMotor.setPower(1);
@@ -89,9 +96,25 @@ public class BasicOpMode extends LinearOpMode {
                 armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             }
 
-            if (gamepad1.dpad_up) {
+            final double STEP_SIZE = 0.01f;
 
-//controls for
+            if (gamepad1.x) {
+                double handMotorPosition;
+                handMotorPosition = handMotor.getPosition();
+                double wantedPosition = handMotorPosition - STEP_SIZE;
+                handMotor.setPosition(wantedPosition);
+            }
+
+            if (gamepad1.b) {
+                handMotor.setPosition(1);
+            }
+
+            if (gamepad1.dpad_up) {
+                wristMotor.setPosition(1);
+            }
+
+            if (gamepad1.dpad_down) {
+                wristMotor.setPosition(-1);
             }
 
 
