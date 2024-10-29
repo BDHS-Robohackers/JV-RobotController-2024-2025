@@ -31,15 +31,71 @@ public class Fest extends LinearOpMode {
 
         // Waiting for the play button to be pressed
         waitForStart();
+
+        boolean slowMode = false;
+        final double slowSpeed = 0.5f;
+        boolean overrideMode = false;
+
         while (opModeIsActive()) {
-            // Running
             double max;
+            if (gamepad2.a) {
+                // Override, stop robot
+                double axial = -gamepad2.right_stick_x; // Note: pushing stick forward gives negative value
+                double lateral = -gamepad2.left_stick_x;
+                double yaw = gamepad2.left_stick_y; //gamepad1.right_stick_x;
+
+                double leftFrontPower = axial + lateral + yaw;
+                double rightFrontPower = axial - lateral - yaw;
+                double leftBackPower = axial - lateral + yaw;
+                double rightBackPower = axial + lateral - yaw;
+
+                slowMode = false;
+
+                // Normalize the values so no wheel power exceeds 100%
+                // This ensures that the robot maintains the desired motion.
+                max = Math.max(Math.abs(leftFrontPower), Math.abs(rightFrontPower));
+                max = Math.max(max, Math.abs(leftBackPower));
+                max = Math.max(max, Math.abs(rightBackPower));
+
+                if (max > 1.0) {
+                    leftFrontPower /= max;
+                    rightFrontPower /= max;
+                    leftBackPower /= max;
+                    rightBackPower /= max;
+                }
+
+                leftFrontDrive.setPower(slowMode ? leftFrontPower / 2 : leftFrontPower);
+                rightFrontDrive.setPower(slowMode ? rightFrontPower / 2 : rightFrontPower);
+                leftBackDrive.setPower(slowMode ? leftBackPower / 2 : leftBackPower);
+                rightBackDrive.setPower(slowMode ? rightBackPower / 2 : rightBackPower);
+
+                armMotor.setPower(0);
+                if (gamepad2.right_trigger > 0) {
+                    armMotor.setPower(.5);
+                }
+                if (gamepad2.left_trigger > 0) {
+                    armMotor.setPower(-.5);
+                }
+
+                if (gamepad2.right_bumper) {
+                    pincher.setPosition(1);
+                } else {
+                    pincher.setPosition(0);
+                }
+                continue;
+            }
 
             // POV Mode uses left joystick to go forward & strafe, and right joystick to
             // rotate.
-            double axial = -gamepad1.left_stick_x; // Note: pushing stick forward gives negative value
-            double lateral = gamepad1.left_stick_y;
-            double yaw = gamepad1.right_stick_x;
+            double axial = -gamepad1.right_stick_x; // Note: pushing stick forward gives negative value
+            double lateral = -gamepad1.left_stick_x;
+            double yaw = gamepad1.left_stick_y; //gamepad1.right_stick_x;
+
+            if (gamepad1.dpad_up) {
+                yaw = -1;
+            } else if (gamepad1.dpad_down) {
+                yaw = 1;
+            }
 
             // Combine the joystick requests for each axis-motion to determine each wheel's
             // power.
@@ -48,6 +104,8 @@ public class Fest extends LinearOpMode {
             double rightFrontPower = axial - lateral - yaw;
             double leftBackPower = axial - lateral + yaw;
             double rightBackPower = axial + lateral - yaw;
+
+            slowMode = !gamepad1.a;
 
             // Normalize the values so no wheel power exceeds 100%
             // This ensures that the robot maintains the desired motion.
@@ -80,10 +138,10 @@ public class Fest extends LinearOpMode {
              */
 
             // Send calculated power to wheels
-            leftFrontDrive.setPower(leftFrontPower);
-            rightFrontDrive.setPower(rightFrontPower);
-            leftBackDrive.setPower(leftBackPower);
-            rightBackDrive.setPower(rightBackPower);
+            leftFrontDrive.setPower(slowMode ? leftFrontPower / 2 : leftFrontPower);
+            rightFrontDrive.setPower(slowMode ? rightFrontPower / 2 : rightFrontPower);
+            leftBackDrive.setPower(slowMode ? leftBackPower / 2 : leftBackPower);
+            rightBackDrive.setPower(slowMode ? rightBackPower / 2 : rightBackPower);
 
             // Show the elapsed game time and wheel power.
             telemetry.addData("Status", "Run Time: " + runtime.toString());
@@ -92,14 +150,14 @@ public class Fest extends LinearOpMode {
             telemetry.update();
 
             armMotor.setPower(0);
-            if (gamepad1.y) {
+            if (gamepad1.right_trigger > 0) {
                 armMotor.setPower(.5);
             }
-            if (gamepad1.a) {
+            if (gamepad1.left_trigger > 0) {
                 armMotor.setPower(-.5);
             }
 
-            if (gamepad1.x) {
+            if (gamepad1.right_bumper) {
                 pincher.setPosition(1);
             } else {
                 pincher.setPosition(0);
