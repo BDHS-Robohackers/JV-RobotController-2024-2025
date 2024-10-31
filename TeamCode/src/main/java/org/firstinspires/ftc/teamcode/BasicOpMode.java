@@ -1,8 +1,11 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.arcrobotics.ftclib.hardware.ServoEx;
+import com.arcrobotics.ftclib.hardware.SimpleServo;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.robot.Robot;
@@ -17,12 +20,17 @@ public class BasicOpMode extends LinearOpMode {
     private DcMotor leftBackDrive = null;
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
-    private DcMotor armMotor = null;
-    private Servo wristMotor = null;
-    private Servo handMotor = null;
+    private DcMotorEx armMotor = null;
+    private ServoEx wristMotor = null;
+    private ServoEx handMotor = null;
+
+    private int armMotorPosition = 0;
 
     @Override
     public void runOpMode() {
+
+        final double MIN_ANGLE = 0;
+        final double MAX_ANGLE = 270;
 
         // Initialize the hardware variables. Note that the strings used here must
         // correspond
@@ -32,9 +40,9 @@ public class BasicOpMode extends LinearOpMode {
         leftBackDrive = hardwareMap.get(DcMotor.class, "left_back_drive");
         rightFrontDrive = hardwareMap.get(DcMotor.class, "right_front_drive");
         rightBackDrive = hardwareMap.get(DcMotor.class, "right_back_drive");
-        armMotor = hardwareMap.get(DcMotor.class, "arm_cool");
-        wristMotor = hardwareMap.get(Servo.class, "wristy");
-        handMotor = hardwareMap.get(Servo.class, "army");
+        armMotor = hardwareMap.get(DcMotorEx.class, "arm_cool");
+        wristMotor = new SimpleServo(hardwareMap, "wristy", MIN_ANGLE, MAX_ANGLE);
+        handMotor = new SimpleServo(hardwareMap, "army", MIN_ANGLE, MAX_ANGLE);
 
 
         // ########################################################################################
@@ -59,6 +67,8 @@ public class BasicOpMode extends LinearOpMode {
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
         armMotor.setDirection(DcMotorSimple.Direction.FORWARD);
 
+
+
         // Wait for the robot to start (driver presses START)
         telemetry.addData("Status", "Initialized");
         telemetry.update();
@@ -66,7 +76,8 @@ public class BasicOpMode extends LinearOpMode {
         waitForStart();
         runtime.reset();
         armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        armMotor.setPower(99);
+
+        final double armMotorPowerIncrement = 0.25;
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
@@ -85,40 +96,42 @@ public class BasicOpMode extends LinearOpMode {
             if (gamepad1.y) {
                 armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                 armMotor.setPower(1);
+                armMotorPosition = armMotor.getCurrentPosition();
             }
             else if (gamepad1.a) {
                 armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                 armMotor.setPower(-1);
+                armMotorPosition = armMotor.getCurrentPosition();
             }
             else {
                 armMotor.setPower(0);
-                armMotor.setTargetPosition(armMotor.getCurrentPosition());
-                armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+
+                if (armMotor.getCurrentPosition() < armMotorPosition) {
+                    armMotor.setPower(armMotorPowerIncrement);
+                } else if (armMotor.getCurrentPosition() > armMotorPosition) {
+                    armMotor.setPower(-armMotorPowerIncrement);
+                }
             }
 
             final double STEP_SIZE = 0.01f;
 
             if (gamepad1.x) {
-                double handMotorPosition;
-                handMotorPosition = handMotor.getPosition();
-                double wantedPosition = handMotorPosition - STEP_SIZE;
-                handMotor.setPosition(wantedPosition);
+                handMotor.rotateByAngle(2);
             }
 
             if (gamepad1.b) {
-                handMotor.setPosition(1);
+                handMotor.rotateByAngle(-2);
             }
 
             if (gamepad1.dpad_up) {
-                wristMotor.setPosition(1);
+                wristMotor.rotateByAngle(2);
             }
 
             if (gamepad1.dpad_down) {
-                wristMotor.setPosition(-1);
+                wristMotor.rotateByAngle(-2);
             }
 
-
-
+            telemetry.addData("Hand Angle", handMotor.getAngle());
 
             // Combine the joystick requests for each axis-motion to determine each wheel's
             // power.
