@@ -31,6 +31,7 @@ public class BasicOpMode extends LinearOpMode {
 
         final double MIN_ANGLE = 0;
         final double MAX_ANGLE = 270;
+        boolean wasArmUnderThreshold = false;
 
         // Initialize the hardware variables. Note that the strings used here must
         // correspond
@@ -61,11 +62,16 @@ public class BasicOpMode extends LinearOpMode {
         // backward
         // Keep testing until ALL the wheels move the robot forward when you push the
         // left joystick forward.
-        leftFrontDrive.setDirection(DcMotor.Direction.FORWARD);
-        leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightFrontDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
+        leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
+        leftBackDrive.setDirection(DcMotor.Direction.FORWARD);
+        rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
+        rightBackDrive.setDirection(DcMotor.Direction.REVERSE);
         armMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+
+        leftFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        leftBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        rightBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
 
 
@@ -78,6 +84,7 @@ public class BasicOpMode extends LinearOpMode {
         armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         final double armMotorPowerIncrement = 0.25;
+        double armMotorPowerIncrementAdjustment = 0;
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
@@ -92,7 +99,6 @@ public class BasicOpMode extends LinearOpMode {
             boolean aPressedDown = gamepad1.a;
 
             telemetry.addData("Arm Motor Pos: ", armMotor.getCurrentPosition());
-
             if (gamepad1.y) {
                 armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                 armMotor.setPower(1);
@@ -107,14 +113,17 @@ public class BasicOpMode extends LinearOpMode {
                 armMotor.setPower(0);
 
                 if (armMotor.getCurrentPosition() < armMotorPosition) {
-                    armMotor.setPower(armMotorPowerIncrement);
+                    armMotor.setPower(armMotorPowerIncrement - armMotorPowerIncrementAdjustment);
+                    wasArmUnderThreshold = true;
                 } else if (armMotor.getCurrentPosition() > armMotorPosition) {
-                    armMotor.setPower(-armMotorPowerIncrement);
+                    if (wasArmUnderThreshold) {
+                       armMotorPowerIncrementAdjustment = (armMotor.getCurrentPosition() - armMotorPosition) / (armMotorPowerIncrement - armMotorPowerIncrementAdjustment);
+                    }
+                    armMotor.setPower(-armMotorPowerIncrement + armMotorPowerIncrementAdjustment);
                 }
             }
 
             final double STEP_SIZE = 0.01f;
-
             if (gamepad1.x) {
                 handMotor.rotateByAngle(2);
             }
@@ -164,12 +173,14 @@ public class BasicOpMode extends LinearOpMode {
             // the setDirection() calls above.
             // Once the correct motors move in the correct direction re-comment this code.
 
-            /*
-             * leftFrontPower = gamepad1.x ? 1.0 : 0.0; // X gamepad
-             * leftBackPower = gamepad1.a ? 1.0 : 0.0; // A gamepad
-             * rightFrontPower = gamepad1.y ? 1.0 : 0.0; // Y gamepad
-             * rightBackPower = gamepad1.b ? 1.0 : 0.0; // B gamepad
-             */
+        /*
+             leftFrontPower = gamepad1.x ? 1.0 : 0.0; // X gamepad
+             leftBackPower = gamepad1.a ? 1.0 : 0.0; // A gamepad
+             rightFrontPower = gamepad1.y ? 1.0 : 0.0; // Y gamepad
+             rightBackPower = gamepad1.b ? 1.0 : 0.0; // B gamepad
+
+
+         */
 
             // Send calculated power to wheels
             leftFrontDrive.setPower(leftFrontPower);

@@ -3,6 +3,7 @@ package org.firstinspires.ftc.teamcode.Fall;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -19,15 +20,20 @@ public class Fest extends LinearOpMode {
 
     @Override
     public void runOpMode() {
-        leftFrontDrive = hardwareMap.get(DcMotor .class, "fl_drv");
-        leftBackDrive = hardwareMap.get(DcMotor.class, "bl_drv");
-        rightFrontDrive = hardwareMap.get(DcMotor.class, "fr_drv");
-        rightBackDrive = hardwareMap.get(DcMotor.class, "br_drv");
+        leftFrontDrive = hardwareMap.get(DcMotor.class, "left_front_drive");
+        leftBackDrive = hardwareMap.get(DcMotor.class, "left_back_drive");
+        rightFrontDrive = hardwareMap.get(DcMotor.class, "right_front_drive");
+        rightBackDrive = hardwareMap.get(DcMotor.class, "right_back_drive");
+
+        leftBackDrive.setDirection(DcMotorSimple.Direction.REVERSE);
+        rightBackDrive.setDirection(DcMotorSimple.Direction.REVERSE);
         armMotor = hardwareMap.get(DcMotor.class, "arm_cool");
-        pincher = hardwareMap.get(Servo.class, "pincher");
+        pincher = hardwareMap.get(Servo.class, "army");
         // decrease left value if pincher is pinching too much
         // increase right value if pincher is expanding too far
         pincher.scaleRange(-.3, 1.4);
+
+        int armPos = 0;
 
         // Waiting for the play button to be pressed
         waitForStart();
@@ -40,8 +46,8 @@ public class Fest extends LinearOpMode {
             double max;
             if (gamepad2.a) {
                 // Override, stop robot
-                double axial = -gamepad2.right_stick_x; // Note: pushing stick forward gives negative value
-                double lateral = -gamepad2.left_stick_x;
+                double axial = -gamepad2.left_stick_x; // Note: pushing stick forward gives negative value
+                double lateral = -gamepad2.right_stick_x;
                 double yaw = gamepad2.left_stick_y; //gamepad1.right_stick_x;
 
                 double leftFrontPower = axial + lateral + yaw;
@@ -69,12 +75,20 @@ public class Fest extends LinearOpMode {
                 leftBackDrive.setPower(slowMode ? leftBackPower / 2 : leftBackPower);
                 rightBackDrive.setPower(slowMode ? rightBackPower / 2 : rightBackPower);
 
-                armMotor.setPower(0);
                 if (gamepad2.right_trigger > 0) {
+                    armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                     armMotor.setPower(.5);
+                    armPos = armMotor.getCurrentPosition();
                 }
-                if (gamepad2.left_trigger > 0) {
+                else if (gamepad2.left_trigger > 0) {
+                    armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                     armMotor.setPower(-.5);
+                    armPos = armMotor.getCurrentPosition();
+                }
+                else {
+                    armMotor.setPower(0);
+                    armMotor.setTargetPosition(armPos);
+                    armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 }
 
                 if (gamepad2.right_bumper) {
@@ -87,8 +101,8 @@ public class Fest extends LinearOpMode {
 
             // POV Mode uses left joystick to go forward & strafe, and right joystick to
             // rotate.
-            double axial = -gamepad1.right_stick_x; // Note: pushing stick forward gives negative value
-            double lateral = -gamepad1.left_stick_x;
+            double axial = gamepad1.right_stick_x; // Note: pushing stick forward gives negative value
+            double lateral = gamepad1.left_stick_x;
             double yaw = gamepad1.left_stick_y; //gamepad1.right_stick_x;
 
             if (gamepad1.dpad_up) {
