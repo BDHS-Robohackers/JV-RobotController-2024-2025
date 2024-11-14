@@ -41,7 +41,7 @@ public class BasicOpMode extends LinearOpMode {
         leftBackDrive = hardwareMap.get(DcMotor.class, "left_back_drive");
         rightFrontDrive = hardwareMap.get(DcMotor.class, "right_front_drive");
         rightBackDrive = hardwareMap.get(DcMotor.class, "right_back_drive");
-        armMotor = hardwareMap.get(DcMotorEx.class, "arm_cool");
+        armMotor = (DcMotorEx) hardwareMap.get(DcMotor.class, "arm_cool");
         wristMotor = new SimpleServo(hardwareMap, "wristy", MIN_ANGLE, MAX_ANGLE);
         handMotor = new SimpleServo(hardwareMap, "army", MIN_ANGLE, MAX_ANGLE);
 
@@ -67,14 +67,16 @@ public class BasicOpMode extends LinearOpMode {
         // left joystick forward.
         leftFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         leftBackDrive.setDirection(DcMotor.Direction.FORWARD);
-        rightFrontDrive.setDirection(DcMotor.Direction.FORWARD);
-        rightBackDrive.setDirection(DcMotor.Direction.REVERSE);
-        armMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+        rightFrontDrive.setDirection(DcMotor.Direction.REVERSE);
+        rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
+        armMotor.setDirection(DcMotor.Direction.FORWARD);
 
         leftFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         leftBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         rightBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        armMotor.setTargetPositionTolerance(10);
 
 
 
@@ -86,7 +88,7 @@ public class BasicOpMode extends LinearOpMode {
         runtime.reset();
         armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        final double armMotorPowerIncrement = 0.25;
+        final double armMotorCorrectionPower = 0.15;
         double armMotorPowerIncrementAdjustment = 0;
 
         // run until the end of the match (driver presses STOP)
@@ -102,6 +104,7 @@ public class BasicOpMode extends LinearOpMode {
             boolean aPressedDown = gamepad1.a;
 
             telemetry.addData("Arm Motor Pos: ", armMotor.getCurrentPosition());
+            telemetry.addData("SET Arm Motor Pos: ", armMotorPosition);
             if (gamepad1.y) {
                 armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
                 armMotor.setPower(1);
@@ -113,17 +116,30 @@ public class BasicOpMode extends LinearOpMode {
                 armMotorPosition = armMotor.getCurrentPosition();
             }
             else {
-                armMotor.setPower(0);
+                if (armMotor.getPower() != 0)
+                    armMotor.setPower(0);
+                armMotor.setTargetPosition(armMotor.getCurrentPosition());
+                armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                /*
+                if (armMotor.getMode() != DcMotor.RunMode.RUN_TO_POSITION)
+                {
+                    armMotor.setTargetPosition(armMotorPosition);
+                    armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+                }
 
+                 */
+                /*
                 if (armMotor.getCurrentPosition() < armMotorPosition) {
-                    armMotor.setPower(armMotorPowerIncrement - armMotorPowerIncrementAdjustment);
+                    armMotor.setPower(armMotorCorrectionPower - armMotorPowerIncrementAdjustment);
                     wasArmUnderThreshold = true;
                 } else if (armMotor.getCurrentPosition() > armMotorPosition) {
                     if (wasArmUnderThreshold) {
-                       armMotorPowerIncrementAdjustment = (armMotor.getCurrentPosition() - armMotorPosition) / (armMotorPowerIncrement - armMotorPowerIncrementAdjustment);
+                       armMotorPowerIncrementAdjustment = (armMotor.getCurrentPosition() - armMotorPosition) / (armMotorCorrectionPower - armMotorPowerIncrementAdjustment);
                     }
-                    armMotor.setPower(-armMotorPowerIncrement + armMotorPowerIncrementAdjustment);
+                    armMotor.setPower(-armMotorCorrectionPower + armMotorPowerIncrementAdjustment);
                 }
+
+                 */
             }
 
             final double STEP_SIZE = 0.01f;
