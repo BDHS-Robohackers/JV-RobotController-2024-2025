@@ -116,9 +116,8 @@ public class BasicOpMode extends LinearOpMode {
                 armMotorPosition = armMotor.getCurrentPosition();
             }
             else {
-                if (armMotor.getPower() != 0)
-                    armMotor.setPower(0);
-                armMotor.setTargetPosition(armMotor.getCurrentPosition());
+                armMotor.setPower(1);
+                armMotor.setTargetPosition(armMotorPosition);
                 armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                 /*
                 if (armMotor.getMode() != DcMotor.RunMode.RUN_TO_POSITION)
