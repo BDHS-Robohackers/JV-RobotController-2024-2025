@@ -2,20 +2,13 @@ package org.firstinspires.ftc.teamcode;
 
 import com.arcrobotics.ftclib.hardware.ServoEx;
 import com.arcrobotics.ftclib.hardware.SimpleServo;
-import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.hardware.VoltageSensor;
-import com.qualcomm.robotcore.robot.Robot;
+import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
-
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
 @TeleOp(name = "Driver Op Mode", group = "Driver Op Mode")
 public class BasicOpMode extends LinearOpMode {
@@ -27,24 +20,24 @@ public class BasicOpMode extends LinearOpMode {
     private DcMotor rightFrontDrive = null;
     private DcMotor rightBackDrive = null;
     private DcMotorEx armMotor = null;
-    //private ServoEx wristMotor = null;
-    private CRServo wristMotor = null;
-    private ServoEx handMotor = null;
-
-    private VoltageSensor voltageSensor;
-    private LynxModule revHub;
+    private DcMotorEx armExtentionMotor = null;
+    private ServoEx wristMotor = null;
+    private DcMotor intakeMotor = null;
 
     private int armMotorPosition = 0;
-    private int wristHoldPosition = 0;
-
-    double wristdirection = 0;
+    public static final double INTAKE_POWER = .5;
+    public static final double WRIST_ANGLE_PER_SECOND = 40;
+    public static final double EXTENSION_POWER = 1;
 
     @Override
     public void runOpMode() {
 
         final double MIN_ANGLE = -200;
         final double MAX_ANGLE = -175;
-        boolean wasArmUnderThreshold = false;
+
+        // FOR COMPETITIONS: make armController gamepad2 so multiple people can use the robot
+        Gamepad driverController = gamepad1;
+        Gamepad armController = gamepad2;
 
         // Initialize the hardware variables. Note that the strings used here must
         // correspond
@@ -55,13 +48,9 @@ public class BasicOpMode extends LinearOpMode {
         rightFrontDrive = hardwareMap.get(DcMotor.class, "right_front_drive");
         rightBackDrive = hardwareMap.get(DcMotor.class, "right_back_drive");
         armMotor = (DcMotorEx) hardwareMap.get(DcMotor.class, "arm_cool");
-        //wristMotor = new SimpleServo(hardwareMap, "wristy", MIN_ANGLE, MAX_ANGLE);
-        wristMotor = hardwareMap.get(CRServo.class, "wristy");
-        handMotor = new SimpleServo(hardwareMap, "army", -180, -170);
-
-        voltageSensor = hardwareMap.get(VoltageSensor.class, "Control Hub");
-        revHub = hardwareMap.get(LynxModule.class, "Control Hub");
-
+        armExtentionMotor = (DcMotorEx) hardwareMap.get(DcMotor.class, "arm_extension");
+        intakeMotor = hardwareMap.get(DcMotor.class, "intake");
+        wristMotor = new SimpleServo(hardwareMap, "wristy", MIN_ANGLE, MAX_ANGLE);
 
         // ########################################################################################
         // !!! IMPORTANT Drive Information. Test your motor directions. !!!!!
@@ -84,6 +73,8 @@ public class BasicOpMode extends LinearOpMode {
         rightFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         rightBackDrive.setDirection(DcMotor.Direction.FORWARD);
         armMotor.setDirection(DcMotor.Direction.FORWARD);
+        armExtentionMotor.setDirection(DcMotorSimple.Direction.FORWARD);
+        intakeMotor.setDirection(DcMotorSimple.Direction.FORWARD);
 
         /*leftFrontDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         leftBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
@@ -91,8 +82,9 @@ public class BasicOpMode extends LinearOpMode {
         rightBackDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);*/
 
         armMotor.setTargetPositionTolerance(10);
-
-
+        armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        armExtentionMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         // Wait for the robot to start (driver presses START)
         telemetry.addData("Status", "Initialized");
@@ -100,49 +92,23 @@ public class BasicOpMode extends LinearOpMode {
 
         waitForStart();
         runtime.reset();
-        armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
-        final double armMotorCorrectionPower = 0.15;
-        double armMotorPowerIncrementAdjustment = 0;
+        ElapsedTime elapsedTime = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
 
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
+            double deltaTime = elapsedTime.time();
+            elapsedTime.reset();
+
             double max;
 
-            // POV Mode uses left joystick to go forward & strafe, and right joystick to
-            // rotate.
             double strafingspeed = gamepad1.left_trigger - gamepad1.right_trigger;
             double axial = (1.0 *gamepad1.left_stick_y); // Note: pushing stick forward gives negative value
             double lateral = (0.6*strafingspeed);
             double yaw = (0.6*gamepad1.right_stick_x);
 
-            boolean aPressedDown = gamepad1.a;
-
-            telemetry.addData("CUR Arm Motor Pos: ", armMotor.getCurrentPosition());
-            telemetry.addData("SET Arm Motor Pos: ", armMotorPosition);
-            //telemetry.addData("CUR wrist servo position (?)", wristMotor.getPosition());
-            //telemetry.addData("SET wrist servo position: ", wristMotor.getAngle());
-            /*if (gamepad1.y) {
-                armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                armMotor.setPower(1);
-                armMotorPosition = armMotor.getCurrentPosition();
-            }
-            else if (gamepad1.a) {
-                armMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                armMotor.setPower(-1);
-                armMotorPosition = armMotor.getCurrentPosition();
-            }
-            else {
-                armMotor.setPower(1);
-                armMotor.setTargetPosition(armMotorPosition);
-                armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            }*/
-
             double armMovement = 0;
-            /*armMovement += gamepad1.right_trigger; SINGLE CONTROLLER
-            armMovement -= gamepad1.left_trigger; SINGLE CONTROLLER */
-
-            armMovement = gamepad2.right_stick_y; // TWO CONTROLLERS (controlled by #2)
+            armMovement = armController.right_stick_y; // TWO CONTROLLERS (controlled by #2)
 
             if (Math.abs(armMovement) <= 0.1) {
                 // if joystick is under thresold or not pushed
@@ -156,77 +122,28 @@ public class BasicOpMode extends LinearOpMode {
                 armMotorPosition = armMotor.getCurrentPosition();
             }
 
-            final double STEP_SIZE = 0.01f;
-            /* if (gamepad1.x) {
-                handMotor.rotateByAngle(2);
-            } SINGLE CONTROLLER */
-
-
-            // Position 0 : open
-            // Position 0.5: closed
-            double handPower = 1f-gamepad2.right_trigger;
-            double position = (handPower + 1f) / 2f;
-            position += .25f;
-            handMotor.setPosition(position);
-            voltageSensor.getVoltage();
-            armMotor.getCurrent(CurrentUnit.AMPS);
-            System.out.println("Current Draw: " + revHub.getCurrent(CurrentUnit.AMPS));
-
-            /*if (gamepad2.right_bumper) {
-                handMotor.rotateByAngle(2);
-            }*/ // TWO CONTROLLERS (controlled by #2)
-
-            /* if (gamepad1.b) {
-                handMotor.rotateByAngle(-2);
-            } SINGLE CONTROLLER */
-
-            /*if (gamepad2.left_bumper) {
-                handMotor.rotateByAngle(-2);
-            }*/ // TWO CONTROLLERS (controlled by #2)
-
-
-
-            /*if (gamepad1.dpad_up) {
-                wristMotor.rotateByAngle(2);
+            if (armController.dpad_up) {
+                wristMotor.rotateByAngle(WRIST_ANGLE_PER_SECOND * deltaTime);
+            }
+            if (armController.dpad_down) {
+                wristMotor.rotateByAngle(-WRIST_ANGLE_PER_SECOND * deltaTime);
             }
 
-            if (gamepad1.dpad_down) {
-                wristMotor.rotateByAngle(-2);
-            }*/
-
-
-            float wristspeed = .7f;
-            if (gamepad2.dpad_down) {
-                wristdirection--;
-
-
-            } else if (gamepad2.dpad_up) {
-                wristdirection++;
-
+            if (armController.x) {
+                intakeMotor.setPower(INTAKE_POWER);
+            } else if (armController.b) {
+                intakeMotor.setPower(-INTAKE_POWER);
             } else {
-                wristdirection = 5;
-
+                intakeMotor.setPower(0);
             }
-            float speed = .7f;
-            wristMotor.setPower(wristdirection * speed);
 
-            telemetry.addData("Wristdirection", wristdirection);
-
-            /*double direction = 0;
-            float speed = .7f;
-            if (gamepad2.dpad_down) {
-                direction--;
+            if (armController.dpad_right) {
+                armExtentionMotor.setPower(EXTENSION_POWER);
+            } else if (armController.dpad_left) {
+                armExtentionMotor.setPower(-EXTENSION_POWER);
+            } else {
+                armExtentionMotor.setPower(0);
             }
-            if (gamepad2.dpad_up) {
-                direction++;
-            }
-            wristMotor.setPower(direction * speed);*/
-
-
-
-
-            telemetry.addData("SET Hand Angle", handMotor.getAngle());
-            telemetry.addData("CUR hand Angle", handMotor.getPosition());
 
             // Combine the joystick requests for each axis-motion to determine each wheel's
             // power.
@@ -239,8 +156,6 @@ public class BasicOpMode extends LinearOpMode {
             // Normalize the values so no wheel power exceeds 100%
             // This ensures that the robot maintains the desired motion.
             max = Math.max(Math.abs(leftFrontPower), Math.abs(rightFrontPower));
-
-
             max = Math.max(max, Math.abs(leftBackPower));
             max = Math.max(max, Math.abs(rightBackPower));
 
@@ -261,20 +176,17 @@ public class BasicOpMode extends LinearOpMode {
             // the setDirection() calls above.
             // Once the correct motors move in the correct direction re-comment this code.
 
-        /*
-             leftFrontPower = gamepad1.x ? 1.0 : 0.0; // X gamepad
-             leftBackPower = gamepad1.a ? 1.0 : 0.0; // A gamepad
-             rightFrontPower = gamepad1.y ? 1.0 : 0.0; // Y gamepad
-             rightBackPower = gamepad1.b ? 1.0 : 0.0; // B gamepad
-
-
-         */
+            /*
+                 leftFrontPower = driverController.x ? 1.0 : 0.0; // X gamepad
+                 leftBackPower = driverController.a ? 1.0 : 0.0; // A gamepad
+                 rightFrontPower = driverController.y ? 1.0 : 0.0; // Y gamepad
+                 rightBackPower = driverController.b ? 1.0 : 0.0; // B gamepad
+            */
 
             // Send calculated power to wheels
             leftFrontDrive.setPower(leftFrontPower);
             rightFrontDrive.setPower(rightFrontPower);
             leftBackDrive.setPower(leftBackPower);
-
             rightBackDrive.setPower(rightBackPower);
 
             // Show the elapsed game time and wheel power.
