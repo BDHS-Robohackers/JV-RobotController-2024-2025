@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Gamepad;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 
 @TeleOp(name = "Driver Op Mode", group = "Driver Op Mode")
@@ -55,15 +56,20 @@ public class BasicOpMode extends LinearOpMode {
     public void updateArm() {
         double armMovement = armController.right_stick_y;
 
+        // REMOVE THIS.
+        if (1 + 1 == 2) {
+            return;
+        }
+
         if (armMotorPosition == -1) {
             armMotorPosition = robot.armMotor.getCurrentPosition();
         }
 
         if (Math.abs(armMovement) <= 0.1) {
             // if joystick is under threshold or not pushed
+            robot.armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             robot.armMotor.setPower(1);
             robot.armMotor.setTargetPosition(armMotorPosition);
-            robot.armMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         } else {
             // when pressed
             robot.armMotor.setPower(armMovement);
@@ -73,10 +79,7 @@ public class BasicOpMode extends LinearOpMode {
     }
 
     public void updateWrist(double deltaTime) {
-        telemetry.addData("Wrist current: ", robot.wristMotor.getCurrent(CurrentUnit.AMPS));
-        telemetry.update();
-
-        double wristMovement = (0.01 * armController.left_stick_y);
+        double wristMovement = (armController.left_stick_y);
 
         //if (wristMotorPosition == -1) {
         //    wristMotorPosition = robot.wristMotor.getCurrentPosition();
@@ -84,32 +87,24 @@ public class BasicOpMode extends LinearOpMode {
 
         telemetry.addData("wrist position", robot.wristMotor.getCurrentPosition());
         telemetry.addData("wrist target", robot.wristMotor.getTargetPosition());
+        telemetry.addData("wrist current: ", robot.wristMotor.getCurrent(CurrentUnit.AMPS));
+        telemetry.addData("wrist input", wristMovement);
+        telemetry.addData("wrist ratio", robot.wristMotor.getMotorType().getGearing());
         telemetry.update();
-        int goToHere = 0;
 
-        if (armController.dpad_up) {
+        if (Math.abs(wristMovement) >= 0.2) {
+            double MAX_ANGULAR_VELOCITY = 30;
+            MAX_ANGULAR_VELOCITY *= 19.2; // gear ratio
+            robot.wristMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            robot.wristMotor.setVelocity(MAX_ANGULAR_VELOCITY * wristMovement, AngleUnit.DEGREES);
+            wristMotorPosition = robot.wristMotor.getCurrentPosition();
+        } else {
             robot.wristMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            robot.wristMotor.setTargetPosition(goToHere);
-            goToHere = goToHere + 1;
-            //robot.wristMotor.setPower(0.5);
+            robot.wristMotor.setPower(.5f);
+            robot.wristMotor.setTargetPosition(wristMotorPosition);
         }
-        else if (armController.dpad_down) {
-            robot.wristMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            robot.wristMotor.setTargetPosition(goToHere);
-            goToHere = goToHere - 1;
-            //robot.wristMotor.setPower(-0.5);
-        }
-        else {
-            robot.wristMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            robot.wristMotor.setTargetPosition(goToHere);
-            //robot.wristMotor.setPower(0);
-            /*if (robot.wristMotor.getMode() != DcMotor.RunMode.RUN_TO_POSITION)
-            {
-                robot.wristMotor.setPower(0.1);
-                robot.wristMotor.setTargetPosition(robot.wristMotor.getCurrentPosition());
-                robot.wristMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            }*/
-        }
+
+
         /*
         if (Math.abs(wristMovement) <= 0.001) {
             // if joystick is under threshold or not pushed
