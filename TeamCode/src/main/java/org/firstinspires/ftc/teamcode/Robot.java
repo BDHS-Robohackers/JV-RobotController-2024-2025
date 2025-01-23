@@ -1,7 +1,5 @@
 package org.firstinspires.ftc.teamcode;
 
-import com.arcrobotics.ftclib.hardware.ServoEx;
-import com.arcrobotics.ftclib.hardware.SimpleServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -16,7 +14,7 @@ public class Robot {
     public DcMotor rightBackDrive;
     public DcMotorEx armMotor;
     public DcMotorEx armExtentionMotor;
-    public ServoEx wristServo;
+    public DcMotorEx wristMotor;
     public DcMotor intakeMotor;
     public TouchSensor intakeSensor;
 
@@ -35,7 +33,7 @@ public class Robot {
             rightBackDrive = hardwareMap.get(DcMotor.class, "right_back_drive");
             armMotor = (DcMotorEx) hardwareMap.get(DcMotor.class, "arm_cool");
             intakeMotor = hardwareMap.get(DcMotor.class, "intake");
-            wristServo = new SimpleServo(hardwareMap, "wristy", MIN_ANGLE, MAX_ANGLE);
+            wristMotor = (DcMotorEx) hardwareMap.get(DcMotor.class, "wristy");
             armExtentionMotor = (DcMotorEx) hardwareMap.get(DcMotor.class, "arm_extension");
             intakeSensor = hardwareMap.get(TouchSensor.class, "intake_touch");
         } catch (Exception e) {
@@ -67,9 +65,11 @@ public class Robot {
         intakeMotor.setDirection(DcMotorSimple.Direction.FORWARD);
 
         armMotor.setTargetPositionTolerance(10);
+        wristMotor.setTargetPositionTolerance(10);
         armMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         armExtentionMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         intakeMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        wristMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
     }
 
     /**
